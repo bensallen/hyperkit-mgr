@@ -7,7 +7,7 @@ set -o nounset
 VMDIR="${1}"
 KERNEL="${2:-vmlinuz}"
 INITRD="${3:-initrd}"
-CMDLINE="${4:-earlyprintk=serial console=ttyS0 rancher.autologin=ttyS0 rancher.state.dev=LABEL=RANCHER_STATE rancher.state.autoformat=[/dev/vda] rancher.state.formatzero}"
+CMDLINE="${4:-earlyprintk=serial console=ttyS0}"
 TAPDEV="${5:-tap0}"
 CPUCOUNT="${6:-2}"
 MEMSIZE="${7:-2G}"
