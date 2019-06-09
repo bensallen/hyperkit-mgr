@@ -22,16 +22,13 @@ if [ ! -f "${RUN_DIR}/rancher/${RANCHEROS_VERSION}"/initrd ]; then
     wget -q "https://github.com/rancher/os/releases/download/$RANCHEROS_VERSION/initrd" -O "${RUN_DIR}/rancher/${RANCHEROS_VERSION}/initrd"
 fi
 
-
 KERNEL_PATH="${RUN_DIR}/rancher/${RANCHEROS_VERSION}/vmlinuz"
 INITRD_PATH="${RUN_DIR}/rancher/${RANCHEROS_VERSION}/initrd"
 
 # cmdline returns the kernel cmdline to be used per VM. Available variables are VM_NUM, VMNET_ADDR, NETADDR, CIDR, TAP.
 cmdline() {
-  echo "earlyprintk=serial console=ttyS0 rancher.autologin=ttyS0 rancher.defaults.hostname=ros-vm${VM_NUM} rancher.defaults.network.dns.nameservers=[${VMNET_ADDR}] rancher.network.interfaces.eth0.dhcp=true rancher.network.interfaces.eth1.dhcp=false rancher.network.interfaces.eth1.address=${NETADDR}.1${VM_NUM}/${CIDR} rancher.state.dev=LABEL=RANCHER_STATE rancher.state.autoformat=[/dev/vda] rancher.state.formatzero" 
+  echo "earlyprintk=serial console=ttyS0 rancher.autologin=ttyS0 rancher.defaults.hostname=ros-vm${VM_NUM} rancher.defaults.network.dns.nameservers=[${VMNET_ADDR}] rancher.network.interfaces.eth0.dhcp=true rancher.network.interfaces.eth1.dhcp=false rancher.network.interfaces.eth1.address=${NETADDR}.1${VM_NUM}/${CIDR} rancher.state.dev=LABEL=RANCHER_STATE rancher.state.autoformat=[/dev/vda] rancher.state.formatzero cc.ssh_authorized_keys=['$(cat "${RUN_DIR}/.ssh/hyperkit.pub")']"
 }
-
-# rancher.cloud_init.datasources=[url:http://${VMNET_ADDR}:${HTTP_PORT}/${VM_NUM}/cloud-config]"
 
 # Extra functionality to run before all VM creation
 pre() {

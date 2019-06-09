@@ -84,7 +84,7 @@ fi
 
 if [ ! -f "${RUN_DIR}/.ssh/hyperkit.pub" ]; then
   mkdir -p "${RUN_DIR}/.ssh"
-  ssh-keygen -N "" -C "" -f "${RUN_DIR}/.ssh/hyperkit" >/dev/null
+  ssh-keygen -t ed25519 -N "" -C "" -f "${RUN_DIR}/.ssh/hyperkit" >/dev/null
 fi
 
 pre
