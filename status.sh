@@ -28,7 +28,7 @@ if [ -n "${1:-}" ]; then
     START_COUNT=${1}
     END_COUNT=${1}
   else
-    echo "Specified VM ${1} isn't within the configured number of VMs"
+    echo "Exiting, specified VM ${1} isn't within the configured number of VMs"
     exit 1
   fi
 else
@@ -36,11 +36,15 @@ else
   END_COUNT=$((NODE_COUNT-1))
 fi
 
-SIGNAL=${2:-15}
-
-for i in $(seq "${START_COUNT}" "${END_COUNT}"); do
-  if [ -e "$RUN_DIR/vms/$i/pid" ]; then
-    PID="$(cat "$RUN_DIR/vms/$i/pid")" 
-    sudo kill -"${SIGNAL}" "$PID" || echo "Signal $SIGNAL to $PID failed..."
+for VM_NUM in $(seq "${START_COUNT}" "${END_COUNT}"); do
+  if [ -e "${RUN_DIR}/vms/${VM_NUM}/pid" ]; then
+    PID=$(cat "${RUN_DIR}/vms/${VM_NUM}/pid")
+    if pgrep -q -F "${RUN_DIR}/vms/${VM_NUM}/pid" 2>/dev/null; then
+      printf "* VM %s is running, PID: %s\n" "${VM_NUM}" "${PID}"
+    else
+      printf "* VM %s is stopped, ungraceful shutdown, PID: %s\n" "${VM_NUM}" "${PID}"
+    fi
+  else
+    printf "* VM %s missing pid file, greacefully shutdown / never started\n" "${VM_NUM}"
   fi
 done

@@ -49,7 +49,7 @@ fi
 # Hyperkit expects the pid file not to already exist.
 if [ -e "${VMDIR}/pid" ]; then
   PID=$(cat "${VMDIR}/pid")
-  if kill -0 "$PID"; then
+  if pgrep -q -F "${VMDIR}/pid"; then
     echo "Exiting, found pidfile with running proccess $PID"
     exit 1
   else
@@ -58,7 +58,7 @@ if [ -e "${VMDIR}/pid" ]; then
 fi
 
 if [ ! -e "${VMDIR}/hdd.qcow2" ]; then
-  qemu-img create -f qcow2 -o lazy_refcounts=on,preallocation=metadata "${VMDIR}/hdd.qcow2" "${HDDSIZE}"
+  qemu-img create -f qcow2 -o lazy_refcounts=on,preallocation=metadata "${VMDIR}/hdd.qcow2" "${HDDSIZE}" > /dev/null
 fi
 
 if [ ! -e "${VMDIR}/uuid" ]; then
@@ -90,6 +90,6 @@ ETH1=("-s" "2:1,virtio-tap,${TAPDEV},mac=$(cat "${VMDIR}/mac-eth1")")
 # /dev/vda
 IMG_HDD=("-s" "3,virtio-blk,file://${VMDIR}/hdd.qcow2,format=qcow")
 
-$HYPERKIT "${UUID[@]}" "$ACPI" "${PID[@]}" "${MEM[@]}" "${SMP[@]}" "${PCI_DEV[@]}" "${LPC_DEV[@]}" "${ETH0[@]}" "${ETH1[@]}" "${IMG_HDD[@]}" "${RND[@]}" -f kexec,"$KERNEL","$INITRD","$CMDLINE" > "${VMDIR}/log" 2>&1 &
+sudo $HYPERKIT "${UUID[@]}" "$ACPI" "${PID[@]}" "${MEM[@]}" "${SMP[@]}" "${PCI_DEV[@]}" "${LPC_DEV[@]}" "${ETH0[@]}" "${ETH1[@]}" "${IMG_HDD[@]}" "${RND[@]}" -f kexec,"$KERNEL","$INITRD","$CMDLINE" > "${VMDIR}/log" 2>&1 &
 
 exit $?

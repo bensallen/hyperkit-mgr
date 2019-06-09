@@ -5,19 +5,19 @@ set -o pipefail
 set -o nounset
 
 if ! type realpath > /dev/null 2>&1; then
-  echo "Requires realpath to be installed, eg. brew install coreutils"
+  echo "Exiting, requires realpath to be installed, eg. brew install coreutils"
   exit 1
 fi
 
 if ! type hyperkit > /dev/null 2>&1; then
   if [ ! -e /Applications/Docker.app//Contents/Resources/bin/com.docker.hyperkit ]; then
-    echo "Requires hyperkit to be installed, eg. brew install hyperkit"
+    echo "Exiting, requires hyperkit to be installed, eg. brew install hyperkit"
     exit 1
   fi
 fi
 
 if ! type qemu-img > /dev/null 2>&1; then
-  echo "Requires qemu-img to be installed, eg. brew install qemu"
+  echo "Exiting, requires qemu-img to be installed, eg. brew install qemu"
   exit 1
 fi
 
@@ -61,7 +61,7 @@ if [ -n "${1:-}" ]; then
     START_COUNT=${1}
     END_COUNT=${1}
   else
-    echo "Specified VM ${1} isn't within the configured number of VMs"
+    echo "Exiting, specified VM ${1} isn't within the configured number of VMs"
     exit 1
   fi
 else
@@ -75,7 +75,7 @@ if ! ifconfig "${BRIDGE_DEV}" >/dev/null 2>&1; then
 fi
 
 if [ -e "${SCRIPTPATH}/distro.d/${DISTRO}" ]; then
-    # shellcheck source=distro.d/rancheros
+  # shellcheck source=distro.d/rancheros
   . "${SCRIPTPATH}/distro.d/${DISTRO}"
 else 
   echo "Exiting, distro config file: ${SCRIPTPATH}/distro.d/${DISTRO} does not exist"
@@ -92,19 +92,13 @@ pre
 for VM_NUM in $(seq "${START_COUNT}" "${END_COUNT}"); do
   if [ -e "${RUN_DIR}/vms/${VM_NUM}/pid" ]; then
     PID=$(cat "${RUN_DIR}/vms/${VM_NUM}/pid")
-    if kill -0 "$PID"; then
-      echo "skipping vm${VM_NUM}, existing proccess ${PID}"
+    if pgrep -q -F "${RUN_DIR}/vms/${VM_NUM}/pid"; then
+      echo -e "* Skipping vm${VM_NUM}, existing proccess: ${PID}"
       continue
     fi
   fi
 
   mkdir -p "${RUN_DIR}/vms/${VM_NUM}"
-
-  #mkdir -p "${RUN_DIR}/openstack/latest"
-  #cp user_data "${RUN_DIR}/openstack/latest"
-  #
-  #mkisofs -R -V config-2 -o configdrive.iso /tmp/new-drive
-  #rm -r /tmp/new-drive
 
   # shellcheck disable=SC2034
   NETADDR="$(echo $BRIDGE_IP | cut -d. -f1-3)"
@@ -116,10 +110,20 @@ for VM_NUM in $(seq "${START_COUNT}" "${END_COUNT}"); do
 
   pre-vm
 
+  printf "* Booting VM %s ...\n" "$VM_NUM"
+
   "${SCRIPTPATH}/hyperkit.sh" "${RUN_DIR}/vms/${VM_NUM}" "${KERNEL_PATH}" "${INITRD_PATH}" "${CMDLINE}" "${TAP}" "${NODE_CPUS}" "${NODE_MEM}" "${NODE_HDDSIZE}"
 
+  # Change permissions of the VM files and TTY from root to the user
+  until [ -e "${RUN_DIR}/vms/${VM_NUM}/tty" ] && [ -e "${RUN_DIR}/vms/${VM_NUM}/pid" ]; do
+    sleep 1
+  done
+  sudo chown -h "$USER" "${RUN_DIR}/vms/${VM_NUM}/tty"
+  sudo chown "$USER" "${RUN_DIR}/vms/${VM_NUM}"/*
+
   until ifconfig "${TAP}" >/dev/null 2>&1; do
-    echo "waiting for ${TAP} interface to come up..."; sleep 1
+    echo -e "  waiting for ${TAP} interface to come up...\n"
+    sleep 1
   done
   TAP_LIST+=(addm "${TAP}")
 
@@ -142,8 +146,14 @@ done
 #fi
 
 # Add tap interfaces to bridge
-if [[ -v TAP_LIST[@] ]] && [ ${#TAP_LIST[@]} -ge 2 ]; then
-  ifconfig ${BRIDGE_DEV} "${TAP_LIST[@]}"
+if [ -n "${TAP_LIST:-}" ] && [ ${#TAP_LIST[@]} -ge 2 ]; then
+  printf "* Attaching tap interface(s) to %s ...\n" "${BRIDGE_DEV}"
+  sudo ifconfig ${BRIDGE_DEV} "${TAP_LIST[@]}"
 fi
+
+echo "* Console TTYs (escape via Ctrl-a k):"
+for TTY in "$RUN_DIR"/vms/*/tty; do
+  echo "  - screen $TTY"
+done
 
 post

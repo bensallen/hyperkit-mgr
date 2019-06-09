@@ -13,12 +13,12 @@ echo "RancherOS Version: $RANCHEROS_VERSION"
 mkdir -p "${RUN_DIR}/rancher/${RANCHEROS_VERSION}"
 
 if [ ! -f "${RUN_DIR}/rancher/${RANCHEROS_VERSION}"/vmlinuz ]; then
-    printf "\n* Downloading RancherOS vmlinuz %s ..." "$RANCHEROS_VERSION"
+    printf "* Downloading RancherOS vmlinuz %s ...\n" "$RANCHEROS_VERSION"
     wget -q "https://github.com/rancher/os/releases/download/$RANCHEROS_VERSION/vmlinuz" -O "${RUN_DIR}/rancher/${RANCHEROS_VERSION}/vmlinuz"
 fi
 
 if [ ! -f "${RUN_DIR}/rancher/${RANCHEROS_VERSION}"/initrd ]; then
-    printf "\n* Downloading RancherOS initrd %s ..." "$RANCHEROS_VERSION"
+    printf "* Downloading RancherOS initrd %s ...\n" "$RANCHEROS_VERSION"
     wget -q "https://github.com/rancher/os/releases/download/$RANCHEROS_VERSION/initrd" -O "${RUN_DIR}/rancher/${RANCHEROS_VERSION}/initrd"
 fi
 
@@ -37,7 +37,15 @@ pre() {
 
 # Extra functionality to run after all VM creation
 post() {
-  return
+  echo "* Checking for SSH access ..."
+  NETADDR="$(echo "${BRIDGE_IP}" | cut -d. -f1-3)"
+  for VM_NUM in $(seq "${START_COUNT}" "${END_COUNT}"); do
+    until ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlPath=none -i "${RUN_DIR}/.ssh/hyperkit" "rancher@${NETADDR}.1${VM_NUM}" /bin/true 2>/dev/null && \
+      echo "  - ros-vm$VM_NUM SSH available via: ssh -i ${RUN_DIR}/.ssh/hyperkit rancher@${NETADDR}.1${VM_NUM}"
+      do 
+        echo "  - ros-vm$VM_NUM SSH timed out, retrying ..."; sleep 5
+    done
+  done
 }
 
 # Extra functionality to run before each VM creation
