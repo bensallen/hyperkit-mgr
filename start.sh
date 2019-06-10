@@ -74,6 +74,19 @@ if ! ifconfig "${BRIDGE_DEV}" >/dev/null 2>&1; then
   exit 1
 fi
 
+# Workaround macOS dropping all members of the TAP bridge when a VM with vmnet is brought up
+EXT_BRIDGE_MEMBERS=$(ifconfig ${BRIDGE_DEV} | grep member: | cut -f 2 -d " ")
+if [ -n "${EXT_BRIDGE_MEMBERS}" ]; then
+  for EDEV in ${EXT_BRIDGE_MEMBERS}; do
+    # Ignore tap devices that are for VMs we're working with
+    if [ "${EDEV:0:3}" == "tap" ] && [ "${EDEV#tap}" -ge $((START_COUNT + TAP_DEV_INDEX)) ] && [ "${EDEV#tap}" -le $((END_COUNT + TAP_DEV_INDEX)) ]; then
+      continue
+    fi
+    TAP_LIST+=(addm "${EDEV}")
+  done
+fi
+
+
 if [ -e "${SCRIPTPATH}/distro.d/${DISTRO}" ]; then
   # shellcheck source=distro.d/rancheros
   . "${SCRIPTPATH}/distro.d/${DISTRO}"
