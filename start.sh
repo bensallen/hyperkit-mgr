@@ -74,17 +74,7 @@ if ! ifconfig "${BRIDGE_DEV}" >/dev/null 2>&1; then
   exit 1
 fi
 
-# Workaround macOS dropping all members of the TAP bridge when a VM with vmnet is brought up
-EXT_BRIDGE_MEMBERS=$(ifconfig ${BRIDGE_DEV} | grep member: | cut -f 2 -d " ")
-if [ -n "${EXT_BRIDGE_MEMBERS}" ]; then
-  for EDEV in ${EXT_BRIDGE_MEMBERS}; do
-    # Ignore tap devices that are for VMs we're working with
-    if [ "${EDEV:0:3}" == "tap" ] && [ "${EDEV#tap}" -ge $((START_COUNT + TAP_DEV_INDEX)) ] && [ "${EDEV#tap}" -le $((END_COUNT + TAP_DEV_INDEX)) ]; then
-      continue
-    fi
-    TAP_LIST+=(addm "${EDEV}")
-  done
-fi
+
 
 
 if [ -e "${SCRIPTPATH}/distro.d/${DISTRO}" ]; then
@@ -102,6 +92,8 @@ fi
 
 pre
 
+# Skip VMs that are already running
+VMS=()
 for VM_NUM in $(seq "${START_COUNT}" "${END_COUNT}"); do
   if [ -e "${RUN_DIR}/vms/${VM_NUM}/pid" ]; then
     PID=$(cat "${RUN_DIR}/vms/${VM_NUM}/pid")
@@ -110,6 +102,27 @@ for VM_NUM in $(seq "${START_COUNT}" "${END_COUNT}"); do
       continue
     fi
   fi
+  VMS+=("${VM_NUM}")
+done
+
+# Exit if no VMs to work on
+if [ ${#VMS[@]} -eq 0 ]; then
+  exit 0
+fi
+
+# Workaround macOS dropping all members of the TAP bridge when a VM with vmnet is brought up
+EXT_BRIDGE_MEMBERS=$( (ifconfig ${BRIDGE_DEV} | grep member: | cut -f 2 -d " ") || true)
+if [ -n "${EXT_BRIDGE_MEMBERS}" ]; then
+  for EDEV in ${EXT_BRIDGE_MEMBERS}; do
+    # Ignore tap devices that are for VMs we're working with
+    if [ "${EDEV:0:3}" == "tap" ] && printf '%s\n' "${VMS[@]}" | grep -q -w "${EDEV#tap}"; then
+      continue
+    fi
+    TAP_LIST+=(addm "${EDEV}")
+  done
+fi
+
+for VM_NUM in "${VMS[@]}"; do
 
   mkdir -p "${RUN_DIR}/vms/${VM_NUM}"
 
@@ -165,8 +178,8 @@ if [ -n "${TAP_LIST:-}" ] && [ ${#TAP_LIST[@]} -ge 2 ]; then
 fi
 
 echo "* Console TTYs (escape via Ctrl-a k):"
-for TTY in "$RUN_DIR"/vms/*/tty; do
-  echo "  - screen $TTY"
+for VM in "${VMS[@]}"; do
+  echo "  - screen $RUN_DIR/vms/$VM/tty"
 done
 
 post

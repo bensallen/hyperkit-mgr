@@ -39,7 +39,7 @@ pre() {
 post() {
   echo "* Checking for SSH access ..."
   NETADDR="$(echo "${BRIDGE_IP}" | cut -d. -f1-3)"
-  for VM_NUM in $(seq "${START_COUNT}" "${END_COUNT}"); do
+  for VM_NUM in "${VMS[@]}"; do
     until ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlPath=none -i "${RUN_DIR}/.ssh/hyperkit" "rancher@${NETADDR}.1${VM_NUM}" /bin/true 2>/dev/null && \
       echo "  - ros-vm$VM_NUM SSH available via: ssh -i ${RUN_DIR}/.ssh/hyperkit rancher@${NETADDR}.1${VM_NUM}"
       do 

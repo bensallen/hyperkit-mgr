@@ -90,6 +90,7 @@ ETH1=("-s" "2:1,virtio-tap,${TAPDEV},mac=$(cat "${VMDIR}/mac-eth1")")
 # /dev/vda
 IMG_HDD=("-s" "3,virtio-blk,file://${VMDIR}/hdd.qcow2,format=qcow")
 
+# shellcheck disable=SC2024
 sudo $HYPERKIT "${UUID[@]}" "$ACPI" "${PID[@]}" "${MEM[@]}" "${SMP[@]}" "${PCI_DEV[@]}" "${LPC_DEV[@]}" "${ETH0[@]}" "${ETH1[@]}" "${IMG_HDD[@]}" "${RND[@]}" -f kexec,"$KERNEL","$INITRD","$CMDLINE" > "${VMDIR}/log" 2>&1 &
 
 exit $?
