@@ -17,6 +17,30 @@ brew cask install tuntap
 - Note, the RancherOS config is using behavior in https://github.com/rancher/os/pull/2805 to pass ssh_authorized_keys via the kernel cmdline.
 - Sudo is used where privileged execution is needed: network configuration, and execution of hyperkit itself to make use of vmnet.
 
+
+## Networking
+
+- eth0 makes use of macOS' vmnet, where macOS provides the DHCP, bridge and NAT configuration. This interface will be bridged to the host's bridge100. Vmnet requires the use of the IP address as assigned by DHCP. All other traffic will be firewalled, so static IPs are not supported for this interface.
+- eth1 makes use of a TAP interface, and is added to the configured bridge interface (eg. bridge1). No DHCP is configured, so static IP addressing is required.
+
+### Create macOS Bridge interface for TAP interfaces
+
+1. Open "Systems Preferences"
+2. Open the "Network" preference pane
+3. Click the "cog" drop down menu and select "Manage Virtual Interfaces..."
+4. Click the "+" button and select "New Bridge..."
+5. Enter a name for the new bridge like "bridge1" and do not select any interfaces to include.
+6. Click "Create"
+7. Take note of the BSD Name of the bridge created. This is the interface name used like `ifconfig bridge1`. If this is not bridge1, edit this project's `config` file appropriately.
+8. Click "Done"
+9. Select the new bridge interface in the Network preference pane.
+10. Select from the Configure IPv4 pull down to "Manually", and set the "IP Address" to "192.168.99.1". Set the "Subnet Mask" to "255.255.255.0".
+11. Click "Apply"
+12. Close "System Preferences"
+
+- Note, when the bridge device has no tap interfaces attached to it, macOS shows it as "Not Connected" and does not apply the configured IP address.
+- Note, if you were to use the terminal to create and IP address the bridge interface (eg. `ifconfig bridge1 create`), it will be lost as the first VM comes up with a vmnet interface. If appears macOS largely resets the network configuration to what is in the Network Preferences on each invocation of vmnet. In fact, additional care in this project is taken to record existing bridge members before VM execution is done, as while the bridge itself isn't removed due to the above config, the member tap interfaces do get removed. This project re-adds any members it finds before VM start. Thus, there will be some quick network hangs on the eth1 interface of running VMs, during a neighbor VM startup.
+
 ## Manage VMs
 
 ### Start VMs
@@ -115,6 +139,6 @@ $ screen .run/vms/0/tty
 ### SSH to the RancherOS VM
 
 ```shell
-$ ssh -i /Users/ballen/Desktop/hyperkit-mgr/.run/.ssh/hyperkit rancher@192.168.99.10
+$ ssh -i .run/.ssh/hyperkit rancher@192.168.99.10
 [rancher@ros-vm0 ~]$
 ```
