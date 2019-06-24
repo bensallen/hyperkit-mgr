@@ -45,6 +45,6 @@ for VM_NUM in $(seq "${START_COUNT}" "${END_COUNT}"); do
       printf "* VM %s is stopped, ungraceful shutdown, PID: %s\n" "${VM_NUM}" "${PID}"
     fi
   else
-    printf "* VM %s missing pid file, greacefully shutdown / never started\n" "${VM_NUM}"
+    printf "* VM %s missing pid file, gracefully shutdown / never started\n" "${VM_NUM}"
   fi
 done
