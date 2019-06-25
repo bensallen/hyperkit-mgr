@@ -51,10 +51,6 @@ if [ ! -e "/dev/tap${TAP_DEV_INDEX}" ]; then
   exit 1
 fi
 
-# Fetch the IP address of the macOS vmnet bridge interface (bridge100)
-# shellcheck disable=SC2034
-VMNET_ADDR=$(defaults read /Library/Preferences/SystemConfiguration/com.apple.vmnet Shared_Net_Address)
-
 # First argument can be the VM index number to work with
 if [ -n "${1:-}" ]; then
   if [ "${1}" -ge 0 ] && [ "${1}" -lt ${NODE_COUNT} ]; then
