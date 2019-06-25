@@ -1,11 +1,6 @@
 #!/bin/bash
 # shellcheck disable=SC2034
 
-if ! type rke > /dev/null 2>&1; then
-  echo "Requires rke to be installed, eg. brew install rke"
-  exit 1
-fi
-
 RANCHEROS_VERSION=${RANCHEROS_VERSION:-v1.5.2}
 
 echo "RancherOS Version: $RANCHEROS_VERSION"
